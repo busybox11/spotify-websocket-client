@@ -18,6 +18,7 @@
   "homepage": "https://github.com/busybox11/spotify-websocket-client#readme",
   "dependencies": {
     "dotenv": "^10.0.0",
-    "spotify-web-api-node": "^5.0.2"
+    "spotify-web-api-node": "^5.0.2",
+    "ws": "^8.2.1"
   }
 }
