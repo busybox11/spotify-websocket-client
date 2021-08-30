@@ -1,0 +1,19 @@
+{
+  "name": "spotify-websocket-client",
+  "version": "1.0.0",
+  "description": "Simple Spotify websocket client for simple projects use",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/busybox11/spotify-websocket-client.git"
+  },
+  "author": "busybox11",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/busybox11/spotify-websocket-client/issues"
+  },
+  "homepage": "https://github.com/busybox11/spotify-websocket-client#readme"
+}
