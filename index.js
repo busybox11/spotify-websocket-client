@@ -75,4 +75,4 @@ wss.on('connection', async function connection(ws) {
 	ws.send(await funcs.getPlayingSongName())
 });
 
-tokenRefreshInterval = setInterval(async () => { songLoop() }, 3 * 10 * 60);
+tokenRefreshInterval = setInterval(async () => { songLoop() }, 5 * 10 * 60);

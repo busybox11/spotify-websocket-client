@@ -6,7 +6,9 @@ async function getPlayingData() {
 		return data.body
 	} catch(e) {
 		console.log('Something went wrong!', e);
-		newToken();
+		try {
+			newToken();
+		} catch(e) {}
 	}
 }
 
