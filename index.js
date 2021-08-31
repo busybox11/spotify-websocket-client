@@ -72,7 +72,7 @@ wss.on('connection', async function connection(ws) {
 		console.log('received: %s', message);
 	});
 
-	ws.send(await funcs.getPlayingSongName())
+	ws.send(JSON.stringify({type: 'updatedSong', song: await funcs.getPlayingSongName()}))
 });
 
 tokenRefreshInterval = setInterval(async () => { songLoop() }, 5 * 10 * 60);
