@@ -46,7 +46,7 @@ async function controls(type) {
 				await spotifyApi.skipToPrevious()
 				break
 			case "playpause":
-				let playbackState = await spotifyAPI.getMyCurrentPlaybackState()
+				let playbackState = await spotifyApi.getMyCurrentPlaybackState()
 				if (playbackState.body && playbackState.body.is_playing) {
 					await spotifyApi.pause()
 				} else {
