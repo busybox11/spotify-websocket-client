@@ -15,9 +15,7 @@ async function getPlayingData() {
 	}
 }
 
-async function getPlayingSongName() {
-	let data = await getPlayingData()
-
+async function getPlayingSongName(data) {
 	// If we cannot get the playing track, that means there is no player
 	// so we're returning a generic "Not playing" message
 	try {

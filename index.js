@@ -79,13 +79,27 @@ async function songLoop() {
 	// Function called every 3 seconds to check the currently playing song
 	try {
 		// Tries to get the song, if it doesn't work, skip the request
-		let name = await funcs.getPlayingSongName()
+		let data = await funcs.getPlayingData()
+		let name = await funcs.getPlayingSongName(data)
+		console.log(JSON.stringify(
+						{
+							type: 'updatedSong',
+							song: name,
+							id: data.item.id
+						}
+					))
 		if (name != lastSongs[1]) {
 			wss.clients.forEach(function each(client) {
 				// Send to every websocket client the song formatted in JSON with the
 				// type 'updatedSong', recognized as a periodic check
 				if (client.readyState === WebSocket.OPEN) {
-					client.send(JSON.stringify({type: 'updatedSong', song: name}))
+					client.send(JSON.stringify(
+						{
+							type: 'updatedSong',
+							song: name,
+							id: data.item.id
+						}
+					))
 				}
 			})
 		}
@@ -111,7 +125,14 @@ wss.on('connection', async function connection(ws) {
 	})
 
 	// Send the currently playing song to the new client only
-	ws.send(JSON.stringify({type: 'updatedSong', song: await funcs.getPlayingSongName()}))
+	let data = await funcs.getPlayingData()
+	ws.send(JSON.stringify(
+		{
+			type: 'updatedSong',
+			song: await funcs.getPlayingSongName(data),
+			id: data.item.id
+		}
+	))
 })
 
 songLoopInterval = setInterval(async () => { songLoop() }, 5 * 10 * 60)
