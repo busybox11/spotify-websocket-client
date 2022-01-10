@@ -81,13 +81,6 @@ async function songLoop() {
 		// Tries to get the song, if it doesn't work, skip the request
 		let data = await funcs.getPlayingData()
 		let name = await funcs.getPlayingSongName(data)
-		console.log(JSON.stringify(
-						{
-							type: 'updatedSong',
-							song: name,
-							id: data.item.id
-						}
-					))
 		if (name != lastSongs[1]) {
 			wss.clients.forEach(function each(client) {
 				// Send to every websocket client the song formatted in JSON with the
