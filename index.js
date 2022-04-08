@@ -90,6 +90,9 @@ async function songLoop() {
 						{
 							type: 'updatedSong',
 							song: name,
+							artist: data.item.artists[0].name,
+							name: data.item.name,
+							albumArt: data.item.album.images[0].url,
 							id: data.item.id
 						}
 					))
@@ -123,6 +126,9 @@ wss.on('connection', async function connection(ws) {
 		{
 			type: 'updatedSong',
 			song: await funcs.getPlayingSongName(data),
+			artist: data.item.artists[0].name,
+			name: data.item.name,
+			albumArt: data.item.album.images[0].url,
 			id: data.item.id
 		}
 	))
