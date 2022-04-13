@@ -111,12 +111,22 @@ wss.on('connection', async function connection(ws) {
 
 		// If the message type is a control action,
 		// use the controls handler to trigger the wanted action
-		if (msg.type == "controls") {
-			// Awaiting the controls handler because we need to send the
-			// new song info right after it, thus we want the handler to
-			// be blocking
-			await funcs.controls(msg.data)
-			songLoop()
+		switch (msg.type) {
+			case "controls":
+				// Awaiting the controls handler because we need to send the
+				// new song info right after it, thus we want the handler to
+				// be blocking
+				await funcs.controls(msg.data)
+				songLoop()
+				break
+
+			case "userData":
+				if (msg.data == "getPlaylists") {
+					spotifyApi.getUserPlaylists().then(data => {
+						ws.send(JSON.stringify(data))
+					}, err => { console.log(err) })
+				}
+				break
 		}
 	})
 
