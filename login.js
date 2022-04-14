@@ -6,8 +6,19 @@ const readline = require('readline')
 var SpotifyWebApi = require('spotify-web-api-node')
 
 // Defines all scopes used by the server
-var scopes = ['user-read-recently-played', 'user-read-playback-position', 'user-read-playback-state', 'user-modify-playback-state', 'user-follow-read', 'user-follow-modify', 'user-library-read', 'user-library-modify'],
-    state = 'login'
+var scopes = [
+    'user-read-recently-played',
+    'user-read-playback-position',
+    'user-read-playback-state',
+    'user-modify-playback-state',
+    'user-follow-read',
+    'user-follow-modify',
+    'user-library-read',
+    'user-library-modify',
+    'playlist-modify-public',
+    'playlist-modify-private'
+]
+var state = 'login'
 
 // Set all constants of the API from the .env file (or environment variables)
 var spotifyApi = new SpotifyWebApi({
