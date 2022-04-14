@@ -127,6 +127,33 @@ wss.on('connection', async function connection(ws) {
 					}, err => { console.log(err) })
 				}
 				break
+
+			case "actions":
+
+				if (msg.data.type == "addToPlaylist") {
+					try {
+						spotifyApi.addTracksToPlaylist(msg.data.playlistId, [`spotify:track:${msg.data.trackId}`])
+						.then(function(data) {
+							ws.send(JSON.stringify({
+								type: "callback",
+								endpoint: "actions",
+								action: "addToPlaylist",
+								data: {
+									// TODO: Add small complete data
+									trackId: msg.data.trackId,
+									playlistId: msg.data.playlistId
+								}
+							}))
+						}, function(err) {
+							console.log('Something went wrong!', err);
+						})
+					} catch(e) {
+						ws.send(JSON.stringify({
+							type: "error",
+							data: e
+						}))
+					}
+				}
 		}
 	})
 
