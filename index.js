@@ -58,6 +58,7 @@ newToken()
 // and its artist, and the last playing position
 var lastSongs = ["", ""]
 var lastPosition = 0
+var lastIsPlaying = false
 
 module.exports = {
         spotifyApi,
@@ -82,7 +83,7 @@ async function songLoop() {
                 // Tries to get the song, if it doesn't work, skip the request
                 let data = await funcs.getPlayingData()
                 let name = await funcs.getPlayingSongName(data)
-                if (name != lastSongs[1] || Math.abs(data.progress_ms - lastPosition) > 5000) {
+                if (name != lastSongs[1] || Math.abs(data.progress_ms - lastPosition) > 5000 || lastIsPlaying != data.is_playing) {
                         wss.clients.forEach(function each(client) {
                                 // Send to every websocket client the song formatted in JSON with the
                                 // type 'updatedSong', recognized as a periodic check
@@ -109,6 +110,7 @@ async function songLoop() {
 
                 // Register last playing position
                 lastPosition = data.progress_ms
+                lastIsPlaying = data.is_playing
         } catch(e) {}
 }
 
