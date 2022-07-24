@@ -104,6 +104,8 @@ async function songLoop() {
                                                         }
                                                 }
                                         ))
+                                } else {
+                                        client.close()
                                 }
                         })
                 }
