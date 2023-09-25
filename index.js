@@ -92,6 +92,7 @@ async function songLoop() {
         // Send to every websocket client the song formatted in JSON with the
         // type 'updatedSong', recognized as a periodic check
         if (client.readyState === WebSocket.OPEN) {
+          const albumArt = data.item.album.images[1] ? data.item.album.images[1].url : data.item.album.images[0].url;
           client.send(
             JSON.stringify({
               type: "updatedSong",
@@ -99,7 +100,7 @@ async function songLoop() {
               artist: data.item.artists[0].name,
               name: data.item.name,
               album: data.item.album.name,
-              albumArt: data.item.album.images[0].url,
+              albumArt,
               id: data.item.id,
               progress: {
                 playing: data.is_playing,
@@ -140,6 +141,8 @@ wss.on("connection", async function connection(ws) {
 
   // Send the currently playing song to the new client only
   let data = await funcs.getPlayingData();
+
+  const albumArt = data.item.album.images[1] ? data.item.album.images[1].url : data.item.album.images[0].url;
   ws.send(
     JSON.stringify({
       type: "updatedSong",
@@ -147,7 +150,7 @@ wss.on("connection", async function connection(ws) {
       artist: data.item.artists[0].name,
       name: data.item.name,
       album: data.item.album.name,
-      albumArt: data.item.album.images[0].url,
+      albumArt,
       id: data.item.id,
       progress: {
         playing: data.is_playing,
