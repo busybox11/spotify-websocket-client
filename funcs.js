@@ -11,13 +11,14 @@ async function getPlayingData() {
     console.log("Something went wrong!", e);
     try {
       newToken();
-    } catch (e) { }
+    } catch (e) {}
   }
 }
 
-async function getPlayingSongName(data) {
+function getPlayingSongName(data) {
   // If we cannot get the playing track, that means there is no player
   // so we're returning a generic "Not playing" message
+  let songName;
   try {
     songName = `${data.item.name} - ${data.item.artists[0].name}`;
   } catch (e) {

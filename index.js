@@ -70,21 +70,45 @@ var funcs = require("./funcs");
 
 // Refreshes the access token every 59 minutes, the limit of use being
 // at 60 (1 hour)
-tokenRefreshInterval = setInterval(newToken, 1000 * 60 * 59);
+let tokenRefreshInterval = setInterval(newToken, 1000 * 60 * 59);
 
 // Host the server's websocket on the port 35678
 const wss = new WebSocketServer({
   port: 35678,
 });
 
+function getOutputPlaybackObj(data) {
+  const song = funcs.getPlayingSongName(data);
+  const albumArt = data.item.album.images[1]
+    ? data.item.album.images[1].url
+    : data.item.album.images[0].url;
+  const artists = data.item.artists.map((artist) => artist.name).join(", ");
+
+  return {
+    type: "updatedSong",
+    song,
+    artist: artists,
+    name: data.item.name,
+    album: data.item.album.name,
+    albumArt,
+    id: data.item.id,
+    progress: {
+      playing: data.is_playing,
+      current: data.progress_ms,
+      duration: data.item.duration_ms,
+    },
+  };
+}
+
 async function songLoop() {
   // Function called every 3 seconds to check the currently playing song
   try {
     // Tries to get the song, if it doesn't work, skip the request
     let data = await funcs.getPlayingData();
-    let name = await funcs.getPlayingSongName(data);
+    const playbackObj = getOutputPlaybackObj(data);
+
     if (
-      name != lastSongs[1] ||
+      playbackObj.song != lastSongs[1] ||
       Math.abs(data.progress_ms - lastPosition) > 5000 ||
       lastIsPlaying != data.is_playing
     ) {
@@ -92,23 +116,7 @@ async function songLoop() {
         // Send to every websocket client the song formatted in JSON with the
         // type 'updatedSong', recognized as a periodic check
         if (client.readyState === WebSocket.OPEN) {
-          const albumArt = data.item.album.images[1] ? data.item.album.images[1].url : data.item.album.images[0].url;
-          client.send(
-            JSON.stringify({
-              type: "updatedSong",
-              song: name,
-              artist: data.item.artists[0].name,
-              name: data.item.name,
-              album: data.item.album.name,
-              albumArt,
-              id: data.item.id,
-              progress: {
-                playing: data.is_playing,
-                current: data.progress_ms,
-                duration: data.item.duration_ms,
-              },
-            })
-          );
+          client.send(JSON.stringify(playbackObj));
         } else {
           client.close();
         }
@@ -118,7 +126,7 @@ async function songLoop() {
     // Register last playing position
     lastPosition = data.progress_ms;
     lastIsPlaying = data.is_playing;
-  } catch (e) { }
+  } catch (e) {}
 }
 
 wss.on("connection", async function connection(ws) {
@@ -126,7 +134,7 @@ wss.on("connection", async function connection(ws) {
   ws.on("message", async function incoming(message) {
     // When a client sends a message to the websocket
     console.log("received: %s", message);
-    msg = JSON.parse(message);
+    const msg = JSON.parse(message);
 
     // If the message type is a control action,
     // use the controls handler to trigger the wanted action
@@ -142,25 +150,9 @@ wss.on("connection", async function connection(ws) {
   // Send the currently playing song to the new client only
   let data = await funcs.getPlayingData();
 
-  const albumArt = data.item.album.images[1] ? data.item.album.images[1].url : data.item.album.images[0].url;
-  ws.send(
-    JSON.stringify({
-      type: "updatedSong",
-      song: await funcs.getPlayingSongName(data),
-      artist: data.item.artists[0].name,
-      name: data.item.name,
-      album: data.item.album.name,
-      albumArt,
-      id: data.item.id,
-      progress: {
-        playing: data.is_playing,
-        current: data.progress_ms,
-        duration: data.item.duration_ms,
-      },
-    })
-  );
+  ws.send(JSON.stringify(getOutputPlaybackObj(data)));
 });
 
-songLoopInterval = setInterval(async () => {
+const songLoopInterval = setInterval(async () => {
   songLoop();
 }, 5 * 10 * 60);
