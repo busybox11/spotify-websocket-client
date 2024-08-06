@@ -2,10 +2,10 @@
   "name": "spotify-websocket-client",
   "version": "2.0.0",
   "description": "Simple Spotify websocket client for simple projects use",
-  "main": "index.js",
+  "main": "index.ts",
   "scripts": {
-    "dev": "bun --watch run index.js",
-    "start": "bun run index.js"
+    "dev": "bun --watch run index.ts",
+    "start": "bun run index.ts"
   },
   "repository": {
     "type": "git",
@@ -21,5 +21,15 @@
     "dotenv": "^10.0.0",
     "spotify-web-api-node": "^5.0.2",
     "ws": "^8.2.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.8.0",
+    "eslint": "^9.8.0",
+    "@types/bun": "^1.1.6",
+    "@types/eslint__js": "^8.42.3",
+    "@types/node": "^22.1.0",
+    "@types/spotify-web-api-node": "^5.0.11",
+    "typescript": "^5.5.4",
+    "typescript-eslint": "^8.0.1"
   }
 }

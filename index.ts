@@ -1,21 +1,93 @@
-// Initialize the .env file and the environment variables of the user
-require("dotenv").config();
+import "dotenv/config";
+import { WebSocket, WebSocketServer } from "ws";
+import SpotifyWebApi from "spotify-web-api-node";
 
-const { WebSocket, WebSocketServer } = require("ws");
-var SpotifyWebApi = require("spotify-web-api-node");
-
-let tokenExpirationEpoch;
+// let tokenExpirationEpoch;
 
 // Set all constants of the API from the .env file (or environment variables)
-var spotifyApi = new SpotifyWebApi({
+const spotifyApi = new SpotifyWebApi({
   clientId: process.env.SPOTIFY_CLIENT_ID,
   clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
   redirectUri: process.env.SPOTIFY_REDIRECT_URI,
 });
 
+async function getPlayingData() {
+  try {
+    // We try to get the currently playing state, and to return it
+    const data = await spotifyApi.getMyCurrentPlaybackState();
+    return data.body;
+  } catch (e) {
+    // If it didn't worked, that means that the token might be expired,
+    // thus we're renewing it.
+    console.log("Something went wrong!", e);
+    try {
+      newToken();
+    } catch (e) {
+      console.error(e);
+    }
+  }
+}
+
+async function getPlayingSongName(
+  data: SpotifyApi.CurrentPlaybackResponse | undefined
+) {
+  // If we cannot get the playing track, that means there is no player
+  // so we're returning a generic "Not playing" message
+  let songName: string;
+
+  if (!data || !data.item || data.item.type === "episode") {
+    songName = "No song currently playing";
+    return songName;
+  }
+
+  try {
+    songName = `${data.item?.name} - ${data.item.artists[0].name}`;
+  } catch (e) {
+    console.error(e);
+    songName = "No song currently playing";
+  }
+
+  lastSongs[1] = lastSongs[0];
+  lastSongs[0] = songName;
+
+  return songName;
+}
+
+async function controls(type) {
+  // Music controls handler function
+  try {
+    // We're using a switch statement to handle all the controls
+    // It is possible to go to the next and previous song, play/pause the
+    // current one, and more to come later (like shuffle, repeat, volume)
+    switch (type) {
+      case "next":
+        await spotifyApi.skipToNext();
+        break;
+      case "previous":
+        await spotifyApi.skipToPrevious();
+        break;
+      case "playpause": {
+        const playbackState = await spotifyApi.getMyCurrentPlaybackState();
+        if (playbackState.body && playbackState.body.is_playing) {
+          await spotifyApi.pause();
+        } else {
+          await spotifyApi.play();
+        }
+        break;
+      }
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
+
 // Set the refresh token from the .env file (or environment variables)
 // If that doesn't work, it means that the user either hasn't logged in
 // properly, or at all, and thus needs to do it to set the refresh token
+if (!process.env.REFRESH_TOKEN) {
+  console.error("REFRESH_TOKEN not set");
+  process.exit(1);
+}
 spotifyApi.setRefreshToken(process.env.REFRESH_TOKEN);
 
 function newToken() {
@@ -24,6 +96,10 @@ function newToken() {
   console.log("Refreshing token");
 
   // Set the refresh token from the environment, just in case
+  if (!process.env.REFRESH_TOKEN) {
+    console.error("REFRESH_TOKEN not set");
+    process.exit(1);
+  }
   spotifyApi.setRefreshToken(process.env.REFRESH_TOKEN);
   spotifyApi.refreshAccessToken().then(
     function (data) {
@@ -56,21 +132,13 @@ newToken();
 
 // Initialize an empty last songs array containing the last played track
 // and its artist, and the last playing position
-var lastSongs = ["", ""];
-var lastPosition = 0;
-var lastIsPlaying = false;
-
-module.exports = {
-  spotifyApi,
-  newToken,
-  lastSongs,
-};
-
-var funcs = require("./funcs");
+const lastSongs = ["", ""];
+let lastPosition = 0;
+let lastIsPlaying = false;
 
 // Refreshes the access token every 59 minutes, the limit of use being
 // at 60 (1 hour)
-tokenRefreshInterval = setInterval(newToken, 1000 * 60 * 59);
+// tokenRefreshInterval = setInterval(newToken, 1000 * 60 * 59);
 
 // Host the server's websocket on the port 35678
 const wss = new WebSocketServer({
@@ -81,14 +149,23 @@ async function songLoop() {
   // Function called every 3 seconds to check the currently playing song
   try {
     // Tries to get the song, if it doesn't work, skip the request
-    let data = await funcs.getPlayingData();
-    let name = await funcs.getPlayingSongName(data);
+    const data = await getPlayingData();
+    const name = await getPlayingSongName(data);
+
+    if (!data) {
+      return;
+    }
+
     if (
       name != lastSongs[1] ||
-      Math.abs(data.progress_ms - lastPosition) > 5000 ||
+      Math.abs((data.progress_ms || 0) - lastPosition) > 5000 ||
       lastIsPlaying != data.is_playing
     ) {
       wss.clients.forEach(function each(client) {
+        if (!data.item || data.item.type === "episode") {
+          return;
+        }
+
         // Send to every websocket client the song formatted in JSON with the
         // type 'updatedSong', recognized as a periodic check
         if (client.readyState === WebSocket.OPEN) {
@@ -118,9 +195,11 @@ async function songLoop() {
     }
 
     // Register last playing position
-    lastPosition = data.progress_ms;
+    lastPosition = data.progress_ms || 0;
     lastIsPlaying = data.is_playing;
-  } catch (e) {}
+  } catch (e) {
+    console.error(e);
+  }
 }
 
 wss.on("connection", async function connection(ws) {
@@ -128,7 +207,7 @@ wss.on("connection", async function connection(ws) {
   ws.on("message", async function incoming(message) {
     // When a client sends a message to the websocket
     console.log("received: %s", message);
-    msg = JSON.parse(message);
+    const msg = JSON.parse(message.toString());
 
     // If the message type is a control action,
     // use the controls handler to trigger the wanted action
@@ -136,13 +215,17 @@ wss.on("connection", async function connection(ws) {
       // Awaiting the controls handler because we need to send the
       // new song info right after it, thus we want the handler to
       // be blocking
-      await funcs.controls(msg.data);
+      await controls(msg.data);
       songLoop();
     }
   });
 
   // Send the currently playing song to the new client only
-  let data = await funcs.getPlayingData();
+  const data = await getPlayingData();
+
+  if (!data || !data.item || data.item.type === "episode") {
+    return;
+  }
 
   const albumArt = data.item.album.images[1]
     ? data.item.album.images[1].url
@@ -150,7 +233,7 @@ wss.on("connection", async function connection(ws) {
   ws.send(
     JSON.stringify({
       type: "updatedSong",
-      song: await funcs.getPlayingSongName(data),
+      song: await getPlayingSongName(data),
       artist: data.item.artists[0].name,
       name: data.item.name,
       album: data.item.album.name,
@@ -165,6 +248,6 @@ wss.on("connection", async function connection(ws) {
   );
 });
 
-songLoopInterval = setInterval(async () => {
+setInterval(async () => {
   songLoop();
 }, 5 * 10 * 60);
