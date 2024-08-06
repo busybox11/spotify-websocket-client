@@ -1,10 +1,11 @@
 {
   "name": "spotify-websocket-client",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Simple Spotify websocket client for simple projects use",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "bun --watch run index.js",
+    "start": "bun run index.js"
   },
   "repository": {
     "type": "git",
