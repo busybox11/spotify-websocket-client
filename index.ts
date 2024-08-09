@@ -28,7 +28,7 @@ async function getPlayingData() {
   }
 }
 
-async function getPlayingSongName(
+function getPlayingSongName(
   data: SpotifyApi.CurrentPlaybackResponse | undefined
 ) {
   // If we cannot get the playing track, that means there is no player
@@ -145,19 +145,48 @@ const wss = new WebSocketServer({
   port: 35678,
 });
 
+function getOutputPlaybackObj(
+  data: SpotifyApi.CurrentPlaybackResponse | undefined
+) {
+  if (!data || !data.item || data.item.type === "episode") {
+    return null;
+  }
+
+  const song = getPlayingSongName(data);
+  const albumArt = data.item.album.images[1]
+    ? data.item.album.images[1].url
+    : data.item.album.images[0].url;
+  const artists = data.item.artists.map((artist) => artist.name).join(", ");
+
+  return {
+    type: "updatedSong",
+    song,
+    artist: artists,
+    name: data.item.name,
+    album: data.item.album.name,
+    albumArt,
+    id: data.item.id,
+    progress: {
+      playing: data.is_playing,
+      current: data.progress_ms,
+      duration: data.item.duration_ms,
+    },
+  };
+}
+
 async function songLoop() {
   // Function called every 3 seconds to check the currently playing song
   try {
     // Tries to get the song, if it doesn't work, skip the request
     const data = await getPlayingData();
-    const name = await getPlayingSongName(data);
+    const playbackObj = getOutputPlaybackObj(data);
 
     if (!data) {
       return;
     }
 
     if (
-      name != lastSongs[1] ||
+      playbackObj?.song != lastSongs[1] ||
       Math.abs((data.progress_ms || 0) - lastPosition) > 5000 ||
       lastIsPlaying != data.is_playing
     ) {
@@ -169,25 +198,7 @@ async function songLoop() {
         // Send to every websocket client the song formatted in JSON with the
         // type 'updatedSong', recognized as a periodic check
         if (client.readyState === WebSocket.OPEN) {
-          const albumArt = data.item.album.images[1]
-            ? data.item.album.images[1].url
-            : data.item.album.images[0].url;
-          client.send(
-            JSON.stringify({
-              type: "updatedSong",
-              song: name,
-              artist: data.item.artists[0].name,
-              name: data.item.name,
-              album: data.item.album.name,
-              albumArt,
-              id: data.item.id,
-              progress: {
-                playing: data.is_playing,
-                current: data.progress_ms,
-                duration: data.item.duration_ms,
-              },
-            })
-          );
+          client.send(JSON.stringify(playbackObj));
         } else {
           client.close();
         }
@@ -204,6 +215,8 @@ async function songLoop() {
 
 wss.on("connection", async function connection(ws) {
   // When a new client is connecting
+  console.log("New client connected");
+
   ws.on("message", async function incoming(message) {
     // When a client sends a message to the websocket
     console.log("received: %s", message);
@@ -223,29 +236,7 @@ wss.on("connection", async function connection(ws) {
   // Send the currently playing song to the new client only
   const data = await getPlayingData();
 
-  if (!data || !data.item || data.item.type === "episode") {
-    return;
-  }
-
-  const albumArt = data.item.album.images[1]
-    ? data.item.album.images[1].url
-    : data.item.album.images[0].url;
-  ws.send(
-    JSON.stringify({
-      type: "updatedSong",
-      song: await getPlayingSongName(data),
-      artist: data.item.artists[0].name,
-      name: data.item.name,
-      album: data.item.album.name,
-      albumArt,
-      id: data.item.id,
-      progress: {
-        playing: data.is_playing,
-        current: data.progress_ms,
-        duration: data.item.duration_ms,
-      },
-    })
-  );
+  ws.send(JSON.stringify(getOutputPlaybackObj(data)));
 });
 
 setInterval(async () => {
