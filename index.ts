@@ -166,6 +166,7 @@ function getOutputPlaybackObj(
     album: data.item.album.name,
     albumArt,
     id: data.item.id,
+    preview: data.item.preview_url,
     progress: {
       playing: data.is_playing,
       current: data.progress_ms,
