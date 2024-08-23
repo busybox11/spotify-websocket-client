@@ -28,7 +28,7 @@ bun start
 
 ## Instructions
 
-1. Create an app on [Spotify's developer portal](https://developer.spotify.com/). [Instructions on Spotify's official developer documentation and guides website}(https://developer.spotify.com/documentation/web-api/concepts/apps).
+1. Create an app on [Spotify's developer portal](https://developer.spotify.com/). [Instructions on Spotify's official developer documentation and guides website](https://developer.spotify.com/documentation/web-api/concepts/apps).
 
 - You must set `http://localhost:35679/callback` as a valid Redirect URI.
 
