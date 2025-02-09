@@ -106,20 +106,10 @@ function newToken() {
       // Save the access token so that it's used in future calls
       spotifyApi.setAccessToken(data.body["access_token"]);
 
-      /*
-      // Save the expiration time to know when is the token expiring,
-      // just in case
-      tokenExpirationEpoch =
-        new Date().getTime() / 1000 + data.body['expires_in']
-
-      // Logs that the token has been refreshed, with the expiration time
-      // showed in seconds
-      console.log(
-        'Refreshed token. It expires in ' +
-        Math.floor(tokenExpirationEpoch - new Date().getTime() / 1000) +
-        ' seconds!'
-      )
-      */
+      setTimeout(() => {
+        // Refresh the token 1 minute before it expires
+        newToken();
+      }, data.body["expires_in"] * 1000 - 60 * 1000);
     },
     function (err) {
       console.log("Could not refresh access token", err);
